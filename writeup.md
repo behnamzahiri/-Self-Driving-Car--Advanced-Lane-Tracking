@@ -18,13 +18,19 @@ The goals / steps of this project are the following:
 [image4]: ./examples/warped_straight_lines.jpg "Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
+
+[image7]: ./examples/original_image.jpg "Original Image"
+[image8]: ./examples/undistorted_image.jpg "Undistorted Image Output"
+[image9]: ./examples/sobel_and_hls_thresholding_output.jpg "Sobel and Color Thresholding Output"
+[image10]: ./examples/sobel_and_hls_thresholding_binary_output.jpg "Sobel and Color Thresholding Binary Output"
+[image11]: ./examples/masked_sobel_and_hls_thresholding_binary_output.jpg "Masked Sobel and Color Thresholding Output"
+
+
 [video1]: ./project_video.mp4 "Video"
 
 ### Camera Calibration
 
-#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
-
-The code for this step is contained in the camera_calibration() function within th Jupyter notebook located in "./P2.ipynb".
+The code for this step is contained in the camera_calibration() function within the Jupyter notebook located in "./P2.ipynb".
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
@@ -33,21 +39,30 @@ I then used the output `objpoints` and `imgpoints` to compute the camera calibra
 ![alt text][image1]
 
 ### Pipeline (single images)
+The main pipeline for processing single images is contained within `process_image()` function and consists of the following steps:
 
-#### 1. Provide an example of a distortion-corrected image.
+#### 1. Undistorting the image
+Using the distortion matrix obtained from the camera calibration, I used OpenCV function `cv2.undistort()` to undistort the image. A sample results is shown below:
+![alt text][image7]
+![alt text][image8]
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+#### 2. Applying color and gradient transforms and masking
 
-![alt text][image3]
+I used a combination of color and gradient thresholds to generate a binary image. The thresholding is contained within the `sobel_hls_threshold()` function that takes the undistorted image from previous step as input. The color thresholding is defined on the HLS color maps and thresholds the H and S channels, whereas the gradient threshold acts on the x-direction. Here's an example of my output for this step:
+![alt text][image9]
+![alt text][image10]
 
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+Additionally I define a polygon mask using `vertex()` function to obtain the pixles only within a region of interest using `region_of_interest()` function. Result would look like this  
+![alt text][image11]
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+
+#### 3. Perspective transform
+
+Matrices of the perspective transform are obtained from `warp_parameters()` function and later used within `cv2.warpPerspective()` to get a top view of the road.
+
+ I chose the hardcode the source and destination points in the following manner:
 
 ```python
 src = np.float32(
