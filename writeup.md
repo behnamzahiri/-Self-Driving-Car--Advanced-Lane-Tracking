@@ -15,9 +15,9 @@ The goals / steps of this project are the following:
 [image1]: ./examples/undistort_output.png "Undistorted"
 [image2]: ./test_images/test1.jpg "Road Transformed"
 [image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
+[image4]: ./examples/warped_straight_lines_check.jpg "Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
+[image6]: ./examples/example_output_2.jpg "Output"
 
 [image7]: ./examples/original_image.jpg "Original Image"
 [image8]: ./examples/undistorted_image.jpg "Undistorted Image Output"
@@ -25,12 +25,11 @@ The goals / steps of this project are the following:
 [image10]: ./examples/sobel_and_hls_thresholding_binary_output.jpg "Sobel and Color Thresholding Binary Output"
 [image11]: ./examples/masked_sobel_and_hls_thresholding_binary_output.jpg "Masked Sobel and Color Thresholding Output"
 
-
-[video1]: ./project_video.mp4 "Video"
+[video1]: ./video_outputs/project_video.mp4 "Video"
 
 ### Camera Calibration
 
-The code for this step is contained in the camera_calibration() function within the Jupyter notebook located in "./P2.ipynb".
+The code for this step is contained in the camera_calibration() function within the Jupyter notebook located in `./P2.ipynb`.
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
@@ -51,10 +50,12 @@ Using the distortion matrix obtained from the camera calibration, I used OpenCV 
 #### 2. Applying color and gradient transforms and masking
 
 I used a combination of color and gradient thresholds to generate a binary image. The thresholding is contained within the `sobel_hls_threshold()` function that takes the undistorted image from previous step as input. The color thresholding is defined on the HLS color maps and thresholds the H and S channels, whereas the gradient threshold acts on the x-direction. Here's an example of my output for this step:
+
 ![alt text][image9]
 ![alt text][image10]
 
-Additionally I define a polygon mask using `vertex()` function to obtain the pixles only within a region of interest using `region_of_interest()` function. Result would look like this  
+Additionally I define a polygon mask using `vertex()` function to obtain the pixles only within a region of interest using `region_of_interest()` function. Result would look like this:
+  
 ![alt text][image11]
 
 
@@ -62,47 +63,47 @@ Additionally I define a polygon mask using `vertex()` function to obtain the pix
 
 Matrices of the perspective transform are obtained from `warp_parameters()` function and later used within `cv2.warpPerspective()` to get a top view of the road.
 
- I chose the hardcode the source and destination points in the following manner:
+ I chose the hardcoded the source and destination points in the following manner:
 
 ```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
+src = [[(img_size[0] // 6) - 3, img_size[1]], 
+      [(img_size[0] // 2) - 43, (img_size[1] // 2) + 90], 
+      [(img_size[0] // 2) + 43, (img_size[1] // 2) + 90], 
+      [(img_size[0] * 5 // 6) + 34, img_size[1]]]
+    
+dst = [[(img_size[0] / 4), 0],
     [(img_size[0] / 4), img_size[1]],
     [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+    [(img_size[0] * 3 / 4), 0]]
 ```
 
 This resulted in the following source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 210, 720      | 320, 720      | 
+| 597, 450      | 320, 0        |
+| 683, 450      | 960, 0        |
+| 1100, 720     | 960, 720      |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image. To do this correctness check and to make the following plots just call `check_corners_unwarp()`
 
 ![alt text][image4]
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
-
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+#### 4. Finding lane-line pixels and fit their positions with a polynomial
+As the next step lane-line pixels for each lane was found using the function `find_lane_pixels()` which takes the binary warped image of the previous step as input. These pixels are then added via the `add()` method to `left_lane` and `right_lane` which are instanes of the `Line` class. One of the tasks `add()` method does is it inherently implements a polynomial fit to these pixels as well and stores the coefficients A, B and C as shown in the image below.
 
 ![alt text][image5]
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+#### 5. Finding radius of curvature of the lane and the position of the vehicle with respect to center
 
-I did this in lines # through # in my code in `my_other_file.py`
+When using the `add()` method in `Line` class to add pixels, in addition to polynomial fittind, the method also finds the curvature of each lane using `measure_curvature_meter()` function. 
+Additionally, the position of the vehicle with respect to center lane is also shown as asn overlay on top of the original image. This distance is found within `road_overlay()` function.
 
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+#### 6. Overlay on the original image and the final results of the pipeline
+In the final step `road_overlay()` draws the results on the original image as well overlaying the road curvature and lane center offset. Results for a single reference image is shown below: 
+
 
 ![alt text][image6]
 
@@ -110,9 +111,9 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 ### Pipeline (video)
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+#### 1. Link to the final video output using the pipeline explained above 
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./video_outputs/project_video.mp4)
 
 ---
 
@@ -120,4 +121,14 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Some of the inherent shortcomings of the current approach can be summerized as:
+* HyperParameters defined are static and may not work under all lighting and environmental conditions
+* Parts of the road lanes may get obscured or non existent and the algorithm may not be able to handle all edge cases
+* The algorithm should be able to distinguish between lanes and what seems to be part of a lane (e.g. trash or spilled paint on the road), and that can vastly increase the complexity of this approach   
+
+
+### 2. Suggest possible improvements to your pipeline
+
+A possible improvement would be to:
+* Devise adaptability of the Hyperparameters so that they can change dynamically with the environment settings (characteristics of the input image)
+* Use a supervised learing approach by implementing a neural net may obviate some of the current issues
